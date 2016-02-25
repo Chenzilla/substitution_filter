@@ -10,6 +10,7 @@
 char *quitReplace(char *line, char *from, char *to);
 char *rescanReplace(char *line, char *from, char *to);
 char *globalReplace(char *line, char *from, char *to);
+char* StrStr(char *str, char *target);
 
 int main(int argc, char *argv[]) {
   // Use getLine to load up the input
@@ -51,14 +52,10 @@ int main(int argc, char *argv[]) {
     gLocation = strrchr(flag, 'g');
     qLocation = strrchr(flag, 'q');
     rLocation = strrchr(flag, 'r');
-    if (!qLocation && !gLocation && !rLocation) {
-      printf("use -q\n");
-      nextLine = quitReplace(nextLine, from, to);
-    }
     if (qLocation) {
       if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
         if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
-          printf("use -q\n");
+          printf("use -qaaffa\n");
           nextLine = quitReplace(nextLine, from, to);
         }
       }
@@ -78,6 +75,10 @@ int main(int argc, char *argv[]) {
           nextLine = globalReplace(nextLine, from, to);
         }
       }
+    }
+    if (!qLocation && !gLocation && !rLocation) {
+      printf("use -aaaaq\n");
+      nextLine = quitReplace(nextLine, from, to);
     }
     // Process F and S flags
     int failureNext = i, successNext = i;
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]) {
 
     // If matching = 1, we have succesfully matched a FROM
       // We can now copy a new array, but instead of the substring starting at the first int tracker, we replace it with our TO argument
-    printf("This is the new line: %s", nextLine);
+    printf("This is the new line: %s\n", nextLine);
     if (strcmp(lastLine, nextLine) && strrchr(flag, 'S')) {
       i = successNext * 3;
       printf("This was a success and we go to %d\n", i);
@@ -150,7 +151,7 @@ char *quitReplace(char *line, char *from, char *to) {
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
 
-  if(!(ch = strstr(line, from)))
+  if(!(ch = StrStr(line, from)))
     return line;
 
   buffer = malloc(newLineLength * sizeof(char));
@@ -171,7 +172,7 @@ char *globalReplace(char *line, char *from, char *to) {
 
   buffer = malloc(newLineLength * sizeof(char));
   while (!end) {
-    if(!(ch = strstr(tmpLine, from))) {
+    if(!(ch = StrStr(tmpLine, from))) {
       strcat(buffer, &line[tmpLine - line]);
       end = 0;
       return buffer;
@@ -200,23 +201,40 @@ char *rescanReplace(char *line, char *from, char *to) {
   // }
   buffer = malloc(newLineLength * sizeof(char));
   tmp = malloc(newLineLength * sizeof(char));
-  memcpy(tmp, to, toLength);
-  while (end < 2) {
-    if(!(ch = strstr(tmpLine, from))) {
+  while (!end) {
+    if(!(ch = StrStr(tmpLine, from))) {
       strcat(buffer, &line[tmpLine - line]);
       free(tmp);
       end = 0;
       return buffer;
     }
-    printf("We want to go from %s to %s", from, to);
-    printf("This is the line we are looking at: %s\n", tmpLine);
-    printf("this is the characters that match and onwards %s\n", ch);
-    strncat(buffer, tmpLine, ch - tmpLine);
-    // strcat(buffer, to);
-    printf("This is ampersand: %s\n", &tmpLine[ch - tmpLine + toLength]);
-    strcat(tmp, &tmpLine[ch - tmpLine + toLength]);
+    tmp = strdup(to);
+    // printf("We want to go from %s to %s\n", from, tmp);
+    // printf("This is the line we are looking at: %s\n", tmpLine);
+    // printf("this is the characters that match and onwards %s\n", ch);
+    // strncat(buffer, tmpLine, ch - tmpLine);
+    // printf("This is ampersand: %s\n", &tmpLine[ch - tmpLine + fromLength]);
+    // printf("This is tmp: %s\n", tmp);
+    // printf("This is the buffer: %s\n", buffer);
+    tmp = strcat(tmp, &tmpLine[ch - tmpLine + fromLength]);
     tmpLine = tmp;
-    end++;
   }
   return tmpLine;
+}
+
+char* StrStr(char *str, char *target) {
+  if (!*target)
+    return NULL;
+  char *p1 = str;
+  while (*p1) {
+    char *p1Start = p1, *p2 = target;
+    while (*p1 && *p2 && (*p1 == *p2 || *p2 == '.')) {
+      p1++;
+      p2++;
+    }
+    if (!*p2)
+      return p1Start;
+    p1 = p1Start + 1;
+  }
+  return NULL;
 }
