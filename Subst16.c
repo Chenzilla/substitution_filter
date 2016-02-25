@@ -6,7 +6,6 @@
 #include <string.h>
 #include "./getLine.h"
 
-// char *getLine(FILE *fp);
 char *quitReplace(char *line, char *from, char *to);
 char *rescanReplace(char *line, char *from, char *to);
 char *globalReplace(char *line, char *from, char *to);
@@ -47,15 +46,15 @@ int main(int argc, char *argv[]) {
       inFlag = 0;
     }
     // Determine what kind of matching to use.
-    printf("This is the old line: %s", lastLine);
-    printf("We want to replace %s with %s\n", from, to);
+    // printf("This is the old line: %s", lastLine);
+    // printf("We want to replace %s with %s\n", from, to);
     gLocation = strrchr(flag, 'g');
     qLocation = strrchr(flag, 'q');
     rLocation = strrchr(flag, 'r');
     if (qLocation) {
       if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
         if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
-          printf("use -qaaffa\n");
+          // printf("use -qaaffa\n");
           nextLine = quitReplace(nextLine, from, to);
         }
       }
@@ -63,7 +62,7 @@ int main(int argc, char *argv[]) {
     if (rLocation) {
       if (!gLocation || strlen(rLocation) < strlen(gLocation)) {
         if (!qLocation || strlen(rLocation) < strlen(qLocation)) {
-          printf("use -r\n");
+          // printf("use -r\n");
           nextLine = rescanReplace(nextLine, from, to);
         }
       }
@@ -71,19 +70,18 @@ int main(int argc, char *argv[]) {
     if (gLocation) {
       if (!rLocation || strlen(gLocation) < strlen(rLocation)) {
         if (!qLocation || strlen(gLocation) < strlen(qLocation)) {
-          printf("use -g\n");
+          // printf("use -g\n");
           nextLine = globalReplace(nextLine, from, to);
         }
       }
     }
     if (!qLocation && !gLocation && !rLocation) {
-      printf("use -aaaaq\n");
+      // printf("use -aaaaq\n");
       nextLine = quitReplace(nextLine, from, to);
     }
     // Process F and S flags
     int failureNext = i, successNext = i;
     if (strrchr(flag, 'S')) {
-      printf("Success\n");
       sLocation = strdup(strrchr(flag, 'S'));
       sBuffer = strdup(sLocation);
       if (strlen(sLocation) == 1)
@@ -94,7 +92,6 @@ int main(int argc, char *argv[]) {
       }
     }
     if (strrchr(flag, 'F')) {
-      printf("Failure\n");
       fLocation = strdup(strrchr(flag, 'F'));
       fBuffer = strdup(fLocation);
       if (strlen(fLocation) == 1)
@@ -131,16 +128,29 @@ int main(int argc, char *argv[]) {
 
     // If matching = 1, we have succesfully matched a FROM
       // We can now copy a new array, but instead of the substring starting at the first int tracker, we replace it with our TO argument
-    printf("This is the new line: %s\n", nextLine);
+    // printf("This is the new line: %s\n", nextLine);
     if (strcmp(lastLine, nextLine) && strrchr(flag, 'S')) {
       i = successNext * 3;
-      printf("This was a success and we go to %d\n", i);
+      // printf("This was a success and we go to %d\n", i);
     }
     else if (!strcmp(lastLine, nextLine) && strrchr(flag, 'F')) {
       i = failureNext * 3;
-      printf("This was a failure and we go to %d\n", i);
+      // printf("This was a failure and we go to %d\n", i);
     }
   }
+  printf("%s", nextLine);
+  // free(lastLine);
+  // free(nextLine);
+  // free(from);
+  // free(to);
+  // free(flag);
+  // free(gLocation);
+  // free(qLocation);
+  // free(rLocation);
+  // free(sLocation);
+  // free(fLocation);
+  // free(sBuffer);
+  // free(fBuffer);
   return 0;
 }
 
@@ -156,6 +166,7 @@ char *quitReplace(char *line, char *from, char *to) {
 
   buffer = malloc(newLineLength * sizeof(char));
   strncat(buffer, line, ch - line);
+  *buffer++ = '\0';
   strcat(buffer, to);
   strcat(buffer, &line[ch - line + fromLength]);
   return buffer;
@@ -168,15 +179,20 @@ char *globalReplace(char *line, char *from, char *to) {
   char *buffer, *ch, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
-  int end = 0;
+  int end = 0, everIn = 0;
 
   buffer = malloc(newLineLength * sizeof(char));
   while (!end) {
     if(!(ch = StrStr(tmpLine, from))) {
-      strcat(buffer, &line[tmpLine - line]);
-      end = 0;
-      return buffer;
+      if (everIn) {
+        strcat(buffer, &line[tmpLine - line]);
+        end = 0;
+        return buffer;
+      }
+      else
+        return line;
     }
+    everIn = 1;
     strncat(buffer, tmpLine, ch - tmpLine);
     strcat(buffer, to);
     tmpLine = &tmpLine[ch - tmpLine + fromLength];
@@ -190,26 +206,28 @@ char *rescanReplace(char *line, char *from, char *to) {
   // Returns the new string
   char *buffer, *ch, *tmp, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
-  int newLineLength = lineLength - fromLength + toLength + 1;
-  int end = 0;  // newLine = quitReplace(oldLine, from, to);
+  int newLineLength = (lineLength - fromLength + toLength + 1)*2;
+  int end = 0, everIn = 0;  // newLine = quitReplace(oldLine, from, to);
 
   buffer = malloc(newLineLength * sizeof(char));
   tmp = malloc(newLineLength * sizeof(char));
+  int length;
   while (!end) {
     if(!(ch = StrStr(tmpLine, from))) {
-      strcat(buffer, &line[tmpLine - line]);
-      free(tmp);
-      end = 0;
-      return buffer;
+      if (everIn) {
+        strcat(buffer, &line[tmpLine - line]);
+        free(tmp);
+        end = 0;
+        return buffer;
+      }
+      else
+        return line;
     }
+    everIn = 1;
     tmp = strdup(to);
-    // printf("We want to go from %s to %s\n", from, tmp);
-    // printf("This is the line we are looking at: %s\n", tmpLine);
-    // printf("this is the characters that match and onwards %s\n", ch);
-    strncat(buffer, tmpLine, ch - tmpLine);
-    // printf("This is what we're appending to the end of current line: %s\n", &tmpLine[ch - tmpLine + fromLength]);
-    // printf("This is the buffer: %s\n", buffer);
-    tmp = strcat(tmp, &tmpLine[ch - tmpLine + fromLength]);
+    length = (int)(ch - tmpLine);
+    strncat(buffer, tmpLine, length);
+    tmp = strcat(tmp, &tmpLine[length + fromLength]);
     tmpLine = tmp;
   }
   return tmpLine;
@@ -227,7 +245,6 @@ char* StrStr(char *str, char *target) {
       tmpTarget++;
     }
     while (*tmpStr && *tmpTarget && *tmpStr != '\n' && (*tmpStr == *tmpTarget || (*tmpTarget == '.' && !escaped))) {
-      printf("This is the target: %c\n", *tmpStr);
       // if (*tmpStr == '\n');
       //   printf("YESSS");
       if (*tmpTarget == '@' && !escaped) {
