@@ -13,7 +13,7 @@ char* StrStr(char *str, char *target);
 
 int main(int argc, char *argv[]) {
   // Use getLine to load up the input
-  char *lastLine, *nextLine, *bufferLine, *from, *to, *flag, *originalLine;
+  char *lastLine, *nextLine, *from, *to, *flag, *originalLine;
   originalLine = getLine(stdin);
   nextLine = originalLine;
   char *gLocation, *qLocation, *rLocation, *sLocation, *fLocation, *sBuffer, *fBuffer;
@@ -90,6 +90,8 @@ int main(int argc, char *argv[]) {
         memmove(sBuffer, sLocation+1, strlen(sLocation));
         successNext = (int)strtol(sBuffer, NULL, 10);
       }
+      free(sLocation);
+      free(sBuffer);
     }
     if (strrchr(flag, 'F')) {
       fLocation = strdup(strrchr(flag, 'F'));
@@ -100,6 +102,8 @@ int main(int argc, char *argv[]) {
         memmove(fBuffer, fLocation+1, strlen(fLocation));
         failureNext = (int)strtol(fBuffer, NULL, 10);
       }
+      free(fLocation);
+      free(fBuffer);
     }
 
     // If matching = 1, we have succesfully matched a FROM
@@ -115,7 +119,7 @@ int main(int argc, char *argv[]) {
     free(from);
     free(to);
     free(flag);
-    free(lastLine);
+    // free(lastLine);
   }
 
   printf("%s", nextLine);
@@ -166,6 +170,9 @@ char *globalReplace(char *line, char *from, char *to) {
       else
         return line;
     }
+    printf("This is the tmpLine: %s\n", tmpLine);
+    printf("This is the buffer: %s\n", buffer);
+    printf("This is ch: %s\n", ch);
     everIn = 1;
     size = (int)(ch - tmpLine);
     strncat(buffer, tmpLine, size);
@@ -219,6 +226,12 @@ char *rescanReplace(char *line, char *from, char *to) {
   return tmpLine;
 }
 
+char* replaceCaret(char *from, char *to) {
+  char *buffer;
+  buffer = globalReplace(to, "^", from);
+  return buffer;
+}
+
 char* StrStr(char *str, char *target) {
   int escaped = 0;
   if (!*target)
@@ -231,8 +244,6 @@ char* StrStr(char *str, char *target) {
       tmpTarget++;
     }
     while (*tmpStr && *tmpTarget && *tmpStr != '\n' && (*tmpStr == *tmpTarget || (*tmpTarget == '.' && !escaped))) {
-      // if (*tmpStr == '\n');
-      //   printf("YESSS");
       if (*tmpTarget == '@' && !escaped) {
         escaped = 1;
         tmpTarget++;
