@@ -1,119 +1,157 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <string.h>
+#include "./getLine.h"
 
-char *getLine(FILE *fp);
+// char *getLine(FILE *fp);
 char *quitReplace(char *line, char *from, char *to);
 char *rescanReplace(char *line, char *from, char *to);
 char *globalReplace(char *line, char *from, char *to);
 
+
 int main(int argc, char *argv[]) {
-// Use getLine to load up the input
-char *line, *lastLine, *from, *to, *flag;
-int length;
-line = lastLine = getLine(stdin);
-length = strlen(line);
-printf("The length of %s is %d\n", line, length);
-
-// For each argument set of 3
-int inFrom, inTo, inFlag, flagLength;
-char *lastFlag;
-inTo = inFlag = 0;
-inFrom = 1;
-for (int i = 1; i < argc; i++) {
-  // Load current argument set
-  // Process the FROM
-  if (inFrom) {
-    from = argv[i];
-    inTo = 1;
-    inFrom = 0;
-    printf("%s\n", from);
-    continue;
-  }
-  // Process the TO
-  else if (inTo) {
-    to = argv[i];
-    inFlag = 1;
-    inTo = 0;
-    printf("%s\n", to);
-    continue;
-  }
-  // Process the flag
-  else if (inFlag) {
-    flag = argv[i];
-    inFrom = 1;
-    inFlag = 0;
-    printf("%s\n", flag);
-  }
-  // Determine what kind of matching to use.
-  flagLength = strlen(flag);
-  printf("The length of the flag is %d\n", flagLength);
-
-  // Default of Quit matching
-  if (flagLength == 1 && !strcmp(flag, "-")) {
-    printf("this is a -, use q\n");
-  }
-
-  // If there are only 2 chars in the flag, we match to existing flags
-  else if (flagLength == 2) {
-    if (!strcmp(flag, "-g"))
-      printf("use -g\n");
-    else if (!strcmp(flag, "-q"))
-      printf("use -q\n");
-    else if (!strcmp(flag, "-r"))
-      printf("use -r\n");
-    else if (!strcmp(flag, "-S") || !strcmp(flag, "-F"))
-      printf("use -q\n");
-    else {
-      printf("Not a valid flag");
-      return 1;
+  // Use getLine to load up the input
+  char *line, *lastLine, *from, *to, *flag;
+  // int length;
+  line = lastLine = getLine(stdin);
+  // length = strlen(line);
+  char *gLocation, *qLocation, *rLocation, sLocation, fLocation;
+  long ret;
+  char *ptr;
+  // For each argument set of 3
+  int inFrom, inTo, inFlag, flagLength;
+  inTo = inFlag = 0;
+  inFrom = 1;
+  for (int i = 1; i < argc; i++) {
+    // Load current argument set
+    // Process the FROM
+    if (inFrom) {
+      from = strdup(argv[i]);
+      inTo = 1;
+      inFrom = 0;
+      printf("%s\n", from);
+      continue;
     }
-  }
+    // Process the TO
+    else if (inTo) {
+      to = strdup(argv[i]);
+      inFlag = 1;
+      inTo = 0;
+      printf("%s\n", to);
+      continue;
+    }
+    // Process the flag
+    else if (inFlag) {
+      flag = strdup(argv[i]);
+      inFrom = 1;
+      inFlag = 0;
+      printf("%s\n", flag);
+    }
+    // Determine what kind of matching to use.
+    flagLength = strlen(flag);
+    printf("The length of the flag is %d\n", flagLength);
+    // Default of Quit matching
+    if (flagLength == 1 && !strcmp(flag, "-")) {
+      lastLine = quitReplace(lastLine, from, to);
+    }
+    // If there are only 2 chars in the flag, we match to existing flags
+    else if (flagLength == 2) {
+      if (!strcmp(flag, "-g")) {
+        printf("use -g\n");
+        lastLine = globalReplace(lastLine, from, to);
+      }
+      else if (!strcmp(flag, "-q")) {
+        printf("use -q\n");
+        lastLine = quitReplace(lastLine, from, to);
+      }
+      else if (!strcmp(flag, "-r")) {
+        printf("use -r\n");
+        lastLine = rescanReplace(lastLine, from, to);
+      }
+      else if (!strcmp(flag, "-S") || !strcmp(flag, "-F")) {
+        printf("use -q\n");
+        lastLine = quitReplace(lastLine, from, to);
+      }
+      else {
+        printf("Not a valid flag");
+        return 1;
+      }
+    }
+    // If multiple flags, figure out the last flag
+    else {
+      gLocation = strrchr(flag, 'g');
+      qLocation = strrchr(flag, 'q');
+      rLocation = strrchr(flag, 'r');
+      if (!qLocation && !gLocation && !rLocation) {
+        printf("use -q\n");
+        lastLine = quitReplace(lastLine, from, to);
+      }
+      if (qLocation) {
+        if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
+          if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
+            printf("use -q\n");
+            lastLine = quitReplace(lastLine, from, to);
+          }
+        }
+      }
+      if (rLocation) {
+        if (!gLocation || strlen(rLocation) < strlen(gLocation)) {
+          if (!qLocation || strlen(rLocation) < strlen(qLocation)) {
+            printf("use -r\n");
+            lastLine = rescanReplace(lastLine, from, to);
+          }
+        }
+      }
+      if (gLocation) {
+        if (!rLocation || strlen(gLocation) < strlen(rLocation)) {
+          if (!qLocation || strlen(gLocation) < strlen(qLocation)) {
+            printf("use -g\n");
+            lastLine = globalReplace(lastLine, from, to);
+          }
+        }
+      }
+    }
+    // Process F and S flags
+    sLocation = strrchr(flag, 'S');
+    fLocation = strrchr(flag, 'F');
 
-  // If multiple flags, figure out the last flag
-  else {
-    lastFlag = &flag[flagLength - 1];
-    printf("This is the value of the last flag: ");
-    printf("%s\n", lastFlag);
-    // Check to see if the last flag matches g, q, r
-    if (!strcmp(lastFlag, "g"))
-      printf("use -g\n");
-    else if (!strcmp(lastFlag, "q"))
-      printf("use -q\n");
-    else if (!strcmp(lastFlag, "r"))
-      printf("use -r\n");
-  }
 
-  lastLine = rescanReplace(line, from, to);
-  // Set state of matching to see if we are in the middle of matching a FROM in the input
-  // Set int of current char we are looking at to 0
-  // Set first int tracker to -1
+    printf("Flag: %s\n", flag);
+    ret = strtol("01d", &ptr, 10);
+    printf("STRINGTOL: %ld\n", ret);
+    // free(lastLine);
+    // Set state of matching to see if we are in the middle of matching a FROM in the input
+    // Set int of current char we are looking at to 0
+    // Set first int tracker to -1
 
-  // For each character in the input line
-    // If not in matching state, i.e. trying to match first char still:
-      // See if the current char of input line matches first char of FROM line
-      // If it does,
-        // Set first int tracker to current index
-        // Increment char count and enter matching
-      // Else
-        // Set first int tracker to -1
-        // Set matching and current char to 0
-        // Skip to next increment
-    // Else if trying to match
-      // See if current input line char matches the FROM char corresponding to current char
-      // If it does
-        // Increment current char count and go to next
-      // Else
-        // Set first int tracker to -1
-        // Set matching and current char to 0
-        // Skip to next increment
+    // For each character in the input line
+      // If not in matching state, i.e. trying to match first char still:
+        // See if the current char of input line matches first char of FROM line
+        // If it does,
+          // Set first int tracker to current index
+          // Increment char count and enter matching
+        // Else
+          // Set first int tracker to -1
+          // Set matching and current char to 0
+          // Skip to next increment
+      // Else if trying to match
+        // See if current input line char matches the FROM char corresponding to current char
+        // If it does
+          // Increment current char count and go to next
+        // Else
+          // Set first int tracker to -1
+          // Set matching and current char to 0
+          // Skip to next increment
 
-  // If matching = 1, we have succesfully matched a FROM
-    // We can now copy a new array, but instead of the substring starting at the first int tracker, we replace it with our TO argument
+    // If matching = 1, we have succesfully matched a FROM
+      // We can now copy a new array, but instead of the substring starting at the first int tracker, we replace it with our TO argument
   }
   printf("This is the last line: %s", lastLine);
+  printf("This is to: %s\n", to);
+
   return 0;
 }
 
@@ -138,7 +176,7 @@ char *quitReplace(char *line, char *from, char *to) {
 char *globalReplace(char *line, char *from, char *to) {
   // Every occurence of FROM in the line is replaced by TO
   // Returns the new string
-  char *buffer, *ch, *tmpLine = line;
+  char *buffer, *ch, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
   int end = 0;
@@ -154,14 +192,14 @@ char *globalReplace(char *line, char *from, char *to) {
     strcat(buffer, to);
     tmpLine = &tmpLine[ch - tmpLine + fromLength];
   }
+  return buffer;
 }
 
 // Rescan Replace
 char *rescanReplace(char *line, char *from, char *to) {
   // Leftmost occurence of string FROM is replaced by string TO repeatedly
   // Returns the new string
-  char *oldLine = line, *newLine = line;
-  char *buffer, *ch, *tmpLine = line;
+  char *buffer, *ch, *tmp, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
   int end = 0;  // newLine = quitReplace(oldLine, from, to);
@@ -172,47 +210,25 @@ char *rescanReplace(char *line, char *from, char *to) {
   //   oldLine = newLine;
   //   newLine = quitReplace(oldLine, from, to);
   // }
-
   buffer = malloc(newLineLength * sizeof(char));
-  while (!end) {
+  tmp = malloc(newLineLength * sizeof(char));
+  memcpy(tmp, to, toLength);
+  while (end < 2) {
     if(!(ch = strstr(tmpLine, from))) {
       strcat(buffer, &line[tmpLine - line]);
+      free(tmp);
       end = 0;
       return buffer;
     }
+    printf("We want to go from %s to %s", from, to);
+    printf("This is the line we are looking at: %s\n", tmpLine);
+    printf("this is the characters that match and onwards %s\n", ch);
     strncat(buffer, tmpLine, ch - tmpLine);
-    strcat(buffer, to);
-    tmpLine = &tmpLine[ch - tmpLine + fromLength];
+    // strcat(buffer, to);
+    printf("This is ampersand: %s\n", &tmpLine[ch - tmpLine + toLength]);
+    strcat(tmp, &tmpLine[ch - tmpLine + toLength]);
+    tmpLine = tmp;
+    end++;
   }
-
-  return newLine;
-}
-
-char *getLine(FILE *fp)
-{
-    char *line;                 // Line being read
-    int size;                   // #chars allocated
-    int c, i;
-
-    size = sizeof(double);                      // Minimum allocation
-    line = malloc (size);
-    for (i = 0;  (c = getc(fp)) != EOF; )  {
-  if (i == size-1) {
-      size *= 2;                          // Double allocation
-      line = realloc (line, size);
-  }
-  line[i++] = c;
-  if (c == '\n')                          // Break on newline
-      break;
-    }
-
-    if (c == EOF && i == 0)  {                  // Check for immediate EOF
-  free (line);
-  return NULL;
-    }
-
-    line[i++] = '\0';                           // Terminate line
-    line = realloc (line, i);                   // Trim excess storage
-
-    return (line);
+  return tmpLine;
 }
