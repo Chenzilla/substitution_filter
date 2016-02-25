@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   // int length;
   line = lastLine = getLine(stdin);
   // length = strlen(line);
-  char *gLocation, *qLocation, *rLocation, sLocation, fLocation;
+  char *gLocation, *qLocation, *rLocation, *sLocation, *fLocation, *sBuffer, *fBuffer;
   long ret;
   char *ptr;
   // For each argument set of 3
@@ -88,12 +88,25 @@ int main(int argc, char *argv[]) {
     // Process F and S flags
     sLocation = strrchr(flag, 'S');
     fLocation = strrchr(flag, 'F');
+    sBuffer = strdup(sLocation);
+    fBuffer = strdup(fLocation);
     int failureNext, successNext;
-
-
-    printf("Flag: %s\n", flag);
-    ret = strtol("01d", &ptr, 10);
-    printf("STRINGTOL: %ld\n", ret);
+    if (sLocation) {
+      if (strlen(sLocation) == 1)
+        successNext = 0;
+      else {
+        memmove(sBuffer, sLocation+1, strlen(sLocation));
+        successNext = strtol(sBuffer, NULL, 10);
+      }
+    }
+    if (fLocation) {
+      if (strlen(fLocation) == 1)
+        failureNext = 0;
+      else {
+        memmove(fBuffer, fLocation+1, strlen(fLocation));
+        failureNext = strtol(fBuffer, NULL, 10);
+      }
+    }
     // free(lastLine);
     // Set state of matching to see if we are in the middle of matching a FROM in the input
     // Set int of current char we are looking at to 0
