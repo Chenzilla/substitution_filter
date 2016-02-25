@@ -53,70 +53,42 @@ int main(int argc, char *argv[]) {
     // Determine what kind of matching to use.
     flagLength = strlen(flag);
     printf("The length of the flag is %d\n", flagLength);
-    // Default of Quit matching
-    if (flagLength == 1 && !strcmp(flag, "-")) {
+    gLocation = strrchr(flag, 'g');
+    qLocation = strrchr(flag, 'q');
+    rLocation = strrchr(flag, 'r');
+    if (!qLocation && !gLocation && !rLocation) {
+      printf("use -q\n");
       lastLine = quitReplace(lastLine, from, to);
     }
-    // If there are only 2 chars in the flag, we match to existing flags
-    else if (flagLength == 2) {
-      if (!strcmp(flag, "-g")) {
-        printf("use -g\n");
-        lastLine = globalReplace(lastLine, from, to);
-      }
-      else if (!strcmp(flag, "-q")) {
-        printf("use -q\n");
-        lastLine = quitReplace(lastLine, from, to);
-      }
-      else if (!strcmp(flag, "-r")) {
-        printf("use -r\n");
-        lastLine = rescanReplace(lastLine, from, to);
-      }
-      else if (!strcmp(flag, "-S") || !strcmp(flag, "-F")) {
-        printf("use -q\n");
-        lastLine = quitReplace(lastLine, from, to);
-      }
-      else {
-        printf("Not a valid flag");
-        return 1;
-      }
-    }
-    // If multiple flags, figure out the last flag
-    else {
-      gLocation = strrchr(flag, 'g');
-      qLocation = strrchr(flag, 'q');
-      rLocation = strrchr(flag, 'r');
-      if (!qLocation && !gLocation && !rLocation) {
-        printf("use -q\n");
-        lastLine = quitReplace(lastLine, from, to);
-      }
-      if (qLocation) {
-        if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
-          if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
-            printf("use -q\n");
-            lastLine = quitReplace(lastLine, from, to);
-          }
-        }
-      }
-      if (rLocation) {
-        if (!gLocation || strlen(rLocation) < strlen(gLocation)) {
-          if (!qLocation || strlen(rLocation) < strlen(qLocation)) {
-            printf("use -r\n");
-            lastLine = rescanReplace(lastLine, from, to);
-          }
-        }
-      }
-      if (gLocation) {
-        if (!rLocation || strlen(gLocation) < strlen(rLocation)) {
-          if (!qLocation || strlen(gLocation) < strlen(qLocation)) {
-            printf("use -g\n");
-            lastLine = globalReplace(lastLine, from, to);
-          }
+    if (qLocation) {
+      if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
+        if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
+          printf("use -q\n");
+          lastLine = quitReplace(lastLine, from, to);
         }
       }
     }
+    if (rLocation) {
+      if (!gLocation || strlen(rLocation) < strlen(gLocation)) {
+        if (!qLocation || strlen(rLocation) < strlen(qLocation)) {
+          printf("use -r\n");
+          lastLine = rescanReplace(lastLine, from, to);
+        }
+      }
+    }
+    if (gLocation) {
+      if (!rLocation || strlen(gLocation) < strlen(rLocation)) {
+        if (!qLocation || strlen(gLocation) < strlen(qLocation)) {
+          printf("use -g\n");
+          lastLine = globalReplace(lastLine, from, to);
+        }
+      }
+    }
+
     // Process F and S flags
     sLocation = strrchr(flag, 'S');
     fLocation = strrchr(flag, 'F');
+    int failureNext, successNext;
 
 
     printf("Flag: %s\n", flag);
