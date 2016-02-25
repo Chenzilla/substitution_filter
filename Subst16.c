@@ -11,28 +11,25 @@ char *quitReplace(char *line, char *from, char *to);
 char *rescanReplace(char *line, char *from, char *to);
 char *globalReplace(char *line, char *from, char *to);
 
-
 int main(int argc, char *argv[]) {
   // Use getLine to load up the input
-  char *line, *lastLine, *from, *to, *flag;
+  char *lastLine, *nextLine, *from, *to, *flag;
   // int length;
-  line = lastLine = getLine(stdin);
+  lastLine = nextLine = getLine(stdin);
   // length = strlen(line);
   char *gLocation, *qLocation, *rLocation, *sLocation, *fLocation, *sBuffer, *fBuffer;
-  long ret;
-  char *ptr;
   // For each argument set of 3
-  int inFrom, inTo, inFlag, flagLength;
+  int inFrom, inTo, inFlag;
   inTo = inFlag = 0;
   inFrom = 1;
   for (int i = 1; i < argc; i++) {
+    lastLine = strdup(nextLine);
     // Load current argument set
     // Process the FROM
     if (inFrom) {
       from = strdup(argv[i]);
       inTo = 1;
       inFrom = 0;
-      printf("%s\n", from);
       continue;
     }
     // Process the TO
@@ -40,7 +37,6 @@ int main(int argc, char *argv[]) {
       to = strdup(argv[i]);
       inFlag = 1;
       inTo = 0;
-      printf("%s\n", to);
       continue;
     }
     // Process the flag
@@ -48,23 +44,22 @@ int main(int argc, char *argv[]) {
       flag = strdup(argv[i]);
       inFrom = 1;
       inFlag = 0;
-      printf("%s\n", flag);
     }
     // Determine what kind of matching to use.
-    flagLength = strlen(flag);
-    printf("The length of the flag is %d\n", flagLength);
+    printf("This is the old line: %s", lastLine);
+    printf("We want to replace %s with %s\n", from, to);
     gLocation = strrchr(flag, 'g');
     qLocation = strrchr(flag, 'q');
     rLocation = strrchr(flag, 'r');
     if (!qLocation && !gLocation && !rLocation) {
       printf("use -q\n");
-      lastLine = quitReplace(lastLine, from, to);
+      nextLine = quitReplace(nextLine, from, to);
     }
     if (qLocation) {
       if (!gLocation || strlen(qLocation) < strlen(gLocation)) {
         if (!rLocation || strlen(qLocation) < strlen(rLocation)) {
           printf("use -q\n");
-          lastLine = quitReplace(lastLine, from, to);
+          nextLine = quitReplace(nextLine, from, to);
         }
       }
     }
@@ -72,7 +67,7 @@ int main(int argc, char *argv[]) {
       if (!gLocation || strlen(rLocation) < strlen(gLocation)) {
         if (!qLocation || strlen(rLocation) < strlen(qLocation)) {
           printf("use -r\n");
-          lastLine = rescanReplace(lastLine, from, to);
+          nextLine = rescanReplace(nextLine, from, to);
         }
       }
     }
@@ -80,33 +75,35 @@ int main(int argc, char *argv[]) {
       if (!rLocation || strlen(gLocation) < strlen(rLocation)) {
         if (!qLocation || strlen(gLocation) < strlen(qLocation)) {
           printf("use -g\n");
-          lastLine = globalReplace(lastLine, from, to);
+          nextLine = globalReplace(nextLine, from, to);
         }
       }
     }
-
     // Process F and S flags
-    sLocation = strrchr(flag, 'S');
-    fLocation = strrchr(flag, 'F');
-    sBuffer = strdup(sLocation);
-    fBuffer = strdup(fLocation);
-    int failureNext, successNext;
-    if (sLocation) {
+    int failureNext = i, successNext = i;
+    if (strrchr(flag, 'S')) {
+      printf("Success\n");
+      sLocation = strdup(strrchr(flag, 'S'));
+      sBuffer = strdup(sLocation);
       if (strlen(sLocation) == 1)
         successNext = 0;
       else {
         memmove(sBuffer, sLocation+1, strlen(sLocation));
-        successNext = strtol(sBuffer, NULL, 10);
+        successNext = (int)strtol(sBuffer, NULL, 10);
       }
     }
-    if (fLocation) {
+    if (strrchr(flag, 'F')) {
+      printf("Failure\n");
+      fLocation = strdup(strrchr(flag, 'F'));
+      fBuffer = strdup(fLocation);
       if (strlen(fLocation) == 1)
         failureNext = 0;
       else {
         memmove(fBuffer, fLocation+1, strlen(fLocation));
-        failureNext = strtol(fBuffer, NULL, 10);
+        failureNext = (int)strtol(fBuffer, NULL, 10);
       }
     }
+
     // free(lastLine);
     // Set state of matching to see if we are in the middle of matching a FROM in the input
     // Set int of current char we are looking at to 0
@@ -133,10 +130,16 @@ int main(int argc, char *argv[]) {
 
     // If matching = 1, we have succesfully matched a FROM
       // We can now copy a new array, but instead of the substring starting at the first int tracker, we replace it with our TO argument
+    printf("This is the new line: %s", nextLine);
+    if (strcmp(lastLine, nextLine) && strrchr(flag, 'S')) {
+      i = successNext * 3;
+      printf("This was a success and we go to %d\n", i);
+    }
+    else if (!strcmp(lastLine, nextLine) && strrchr(flag, 'F')) {
+      i = failureNext * 3;
+      printf("This was a failure and we go to %d\n", i);
+    }
   }
-  printf("This is the last line: %s", lastLine);
-  printf("This is to: %s\n", to);
-
   return 0;
 }
 
