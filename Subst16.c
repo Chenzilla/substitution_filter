@@ -193,12 +193,6 @@ char *rescanReplace(char *line, char *from, char *to) {
   int newLineLength = lineLength - fromLength + toLength + 1;
   int end = 0;  // newLine = quitReplace(oldLine, from, to);
 
-  // while (strcmp(oldLine, newLine)){
-  //   printf("This is the oldline %s", oldLine);
-  //   printf("This is the newline %s", newLine);
-  //   oldLine = newLine;
-  //   newLine = quitReplace(oldLine, from, to);
-  // }
   buffer = malloc(newLineLength * sizeof(char));
   tmp = malloc(newLineLength * sizeof(char));
   while (!end) {
@@ -212,9 +206,8 @@ char *rescanReplace(char *line, char *from, char *to) {
     // printf("We want to go from %s to %s\n", from, tmp);
     // printf("This is the line we are looking at: %s\n", tmpLine);
     // printf("this is the characters that match and onwards %s\n", ch);
-    // strncat(buffer, tmpLine, ch - tmpLine);
-    // printf("This is ampersand: %s\n", &tmpLine[ch - tmpLine + fromLength]);
-    // printf("This is tmp: %s\n", tmp);
+    strncat(buffer, tmpLine, ch - tmpLine);
+    // printf("This is what we're appending to the end of current line: %s\n", &tmpLine[ch - tmpLine + fromLength]);
     // printf("This is the buffer: %s\n", buffer);
     tmp = strcat(tmp, &tmpLine[ch - tmpLine + fromLength]);
     tmpLine = tmp;
@@ -223,18 +216,33 @@ char *rescanReplace(char *line, char *from, char *to) {
 }
 
 char* StrStr(char *str, char *target) {
+  int escaped = 0;
   if (!*target)
     return NULL;
-  char *p1 = str;
-  while (*p1) {
-    char *p1Start = p1, *p2 = target;
-    while (*p1 && *p2 && (*p1 == *p2 || *p2 == '.')) {
-      p1++;
-      p2++;
+  char *tmpStr = str;
+  while (*tmpStr) {
+    char *strStart = tmpStr, *tmpTarget = target;
+    if (*tmpTarget == '@' && !escaped) {
+      escaped = 1;
+      tmpTarget++;
     }
-    if (!*p2)
-      return p1Start;
-    p1 = p1Start + 1;
+    while (*tmpStr && *tmpTarget && *tmpStr != '\n' && (*tmpStr == *tmpTarget || (*tmpTarget == '.' && !escaped))) {
+      printf("This is the target: %c\n", *tmpStr);
+      // if (*tmpStr == '\n');
+      //   printf("YESSS");
+      if (*tmpTarget == '@' && !escaped) {
+        escaped = 1;
+        tmpTarget++;
+      }
+      else {
+        escaped = 0;
+        tmpStr++;
+        tmpTarget++;
+      }
+    }
+    if (!*tmpTarget)
+      return strStart;
+    tmpStr = strStart + 1;
   }
   return NULL;
 }
