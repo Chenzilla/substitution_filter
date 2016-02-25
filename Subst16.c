@@ -7,6 +7,7 @@
 char *getLine(FILE *fp);
 char *quitReplace(char *line, char *from, char *to);
 char *rescanReplace(char *line, char *from, char *to);
+char *globalReplace(char *line, char *from, char *to);
 
 int main(int argc, char *argv[]) {
 // Use getLine to load up the input
@@ -116,18 +117,15 @@ for (int i = 1; i < argc; i++) {
   return 0;
 }
 
-
 // Quit Replace
-char *quitReplace(char *line, char *from, char *to){
+char *quitReplace(char *line, char *from, char *to) {
   // Leftmost occurence of string FROM is replaced by string TO
   char *buffer, *ch;
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
 
-  if(!(ch = strstr(line, from))) {
-    printf("No matches");
+  if(!(ch = strstr(line, from)))
     return line;
-  }
 
   buffer = malloc(newLineLength * sizeof(char));
   strncat(buffer, line, ch - line);
@@ -137,19 +135,56 @@ char *quitReplace(char *line, char *from, char *to){
 }
 
 // Global Replace
-// Every occurence of FROM in the line is replaced by TO
-// Returns the new string
+char *globalReplace(char *line, char *from, char *to) {
+  // Every occurence of FROM in the line is replaced by TO
+  // Returns the new string
+  char *buffer, *ch, *tmpLine = line;
+  int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
+  int newLineLength = lineLength - fromLength + toLength + 1;
+  int end = 0;
+
+  buffer = malloc(newLineLength * sizeof(char));
+  while (!end) {
+    if(!(ch = strstr(tmpLine, from))) {
+      strcat(buffer, &line[tmpLine - line]);
+      end = 0;
+      return buffer;
+    }
+    strncat(buffer, tmpLine, ch - tmpLine);
+    strcat(buffer, to);
+    tmpLine = &tmpLine[ch - tmpLine + fromLength];
+  }
+}
 
 // Rescan Replace
-char *rescanReplace(char *line, char *from, char *to){
+char *rescanReplace(char *line, char *from, char *to) {
   // Leftmost occurence of string FROM is replaced by string TO repeatedly
   // Returns the new string
   char *oldLine = line, *newLine = line;
-  newLine = quitReplace(oldLine, from, to);
-  while (strcmp(oldLine, newLine)){
-    oldLine = newLine;
-    newLine = quitReplace(oldLine, from, to);
+  char *buffer, *ch, *tmpLine = line;
+  int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
+  int newLineLength = lineLength - fromLength + toLength + 1;
+  int end = 0;  // newLine = quitReplace(oldLine, from, to);
+
+  // while (strcmp(oldLine, newLine)){
+  //   printf("This is the oldline %s", oldLine);
+  //   printf("This is the newline %s", newLine);
+  //   oldLine = newLine;
+  //   newLine = quitReplace(oldLine, from, to);
+  // }
+
+  buffer = malloc(newLineLength * sizeof(char));
+  while (!end) {
+    if(!(ch = strstr(tmpLine, from))) {
+      strcat(buffer, &line[tmpLine - line]);
+      end = 0;
+      return buffer;
+    }
+    strncat(buffer, tmpLine, ch - tmpLine);
+    strcat(buffer, to);
+    tmpLine = &tmpLine[ch - tmpLine + fromLength];
   }
+
   return newLine;
 }
 
