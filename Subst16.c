@@ -131,22 +131,37 @@ int main(int argc, char *argv[]) {
 // Quit Replace
 char *quitReplace(char *line, char *from, char *to) {
   // Leftmost occurence of string FROM is replaced by string TO
-  char *buffer, *ch;
+  char *buffer, *ch, *tmpTo, *bufferTo, *replacedFrom;
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
-  int newLineLength = lineLength - fromLength + toLength + 1;
+  int newLineLength = (lineLength + toLength + fromLength);
   int length;
 
   if(!(ch = StrStr(line, from)))
     return line;
 
-  buffer = malloc(newLineLength * sizeof(char));
+  buffer = malloc(10 * newLineLength * sizeof(char));
   buffer[0] = '\0';
   length = (int)(ch - line);
   strncat(buffer, line, length);
   buffer[length] = '\0';
-  strcat(buffer, to);
-  strcat(buffer, &line[length + fromLength]);
-  return buffer;
+  replacedFrom = malloc(newLineLength * sizeof(char));
+  strncpy(replacedFrom, ch, fromLength);
+  replacedFrom[fromLength] = '\0';
+  if(strchr(to, '^')) {
+    tmpTo = strdup(to);
+    bufferTo = globalReplace(tmpTo, "^", replacedFrom);
+    free(tmpTo);
+    strcat(buffer, bufferTo);
+    strcat(buffer, &line[length + fromLength]);
+    free(replacedFrom);
+    return buffer;
+  }
+  else {
+    strcat(buffer, to);
+    strcat(buffer, &line[length + fromLength]);
+    free(replacedFrom);
+    return buffer;
+  }
 }
 
 // Global Replace
@@ -155,17 +170,19 @@ char *globalReplace(char *line, char *from, char *to) {
   // Returns the new string
   char *buffer, *ch, *replacedFrom, *tmpTo, *bufferTo, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
-  int newLineLength = lineLength - fromLength + toLength + 1;
+  int newLineLength = lineLength + toLength + fromLength;
   int size, end = 0, everIn = 0;
 
   buffer = malloc(10 * newLineLength * sizeof(char));
   buffer[0] = '\0';
   replacedFrom = malloc(newLineLength * sizeof(char));
+  replacedFrom[fromLength] = '\0';
   while (!end) {
     if(!(ch = StrStr(tmpLine, from))) {
       if (everIn) {
         strcat(buffer, &line[tmpLine - line]);
         end = 0;
+        free(replacedFrom);
         return buffer;
       }
       else
@@ -174,7 +191,6 @@ char *globalReplace(char *line, char *from, char *to) {
     everIn = 1;
     strncpy(replacedFrom, ch, fromLength);
     replacedFrom[fromLength] = '\0';
-
     if(strchr(to, '^')) {
       tmpTo = strdup(to);
       bufferTo = globalReplace(tmpTo, "^", replacedFrom);
@@ -184,7 +200,6 @@ char *globalReplace(char *line, char *from, char *to) {
       strcat(buffer, bufferTo);
       tmpLine = &tmpLine[size + fromLength];
     }
-
     else {
       size = (int)(ch - tmpLine);
       strncat(buffer, tmpLine, size);
@@ -237,12 +252,6 @@ char *rescanReplace(char *line, char *from, char *to) {
   free(tmp);
   free(tmpLine);
   return tmpLine;
-}
-
-char* replaceCaret(char *from, char *to) {
-  char *buffer;
-  buffer = globalReplace(to, "^", from);
-  return buffer;
 }
 
 char* StrStr(char *str, char *target) {
