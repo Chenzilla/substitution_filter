@@ -153,13 +153,14 @@ char *quitReplace(char *line, char *from, char *to) {
 char *globalReplace(char *line, char *from, char *to) {
   // Every occurence of FROM in the line is replaced by TO
   // Returns the new string
-  char *buffer, *ch, *tmpLine = strdup(line);
+  char *buffer, *ch, *replacedFrom, *tmpTo, *bufferTo, *tmpLine = strdup(line);
   int lineLength = strlen(line), fromLength = strlen(from), toLength = strlen(to);
   int newLineLength = lineLength - fromLength + toLength + 1;
   int size, end = 0, everIn = 0;
 
-  buffer = malloc(newLineLength * sizeof(char));
+  buffer = malloc(10 * newLineLength * sizeof(char));
   buffer[0] = '\0';
+  replacedFrom = malloc(newLineLength * sizeof(char));
   while (!end) {
     if(!(ch = StrStr(tmpLine, from))) {
       if (everIn) {
@@ -170,14 +171,26 @@ char *globalReplace(char *line, char *from, char *to) {
       else
         return line;
     }
-    printf("This is the tmpLine: %s\n", tmpLine);
-    printf("This is the buffer: %s\n", buffer);
-    printf("This is ch: %s\n", ch);
     everIn = 1;
-    size = (int)(ch - tmpLine);
-    strncat(buffer, tmpLine, size);
-    strcat(buffer, to);
-    tmpLine = &tmpLine[size + fromLength];
+    strncpy(replacedFrom, ch, fromLength);
+    replacedFrom[fromLength] = '\0';
+
+    if(strchr(to, '^')) {
+      tmpTo = strdup(to);
+      bufferTo = globalReplace(tmpTo, "^", replacedFrom);
+      free(tmpTo);
+      size = (int)(ch - tmpLine);
+      strncat(buffer, tmpLine, size);
+      strcat(buffer, bufferTo);
+      tmpLine = &tmpLine[size + fromLength];
+    }
+
+    else {
+      size = (int)(ch - tmpLine);
+      strncat(buffer, tmpLine, size);
+      strcat(buffer, to);
+      tmpLine = &tmpLine[size + fromLength];
+    }
   }
   return buffer;
 }
